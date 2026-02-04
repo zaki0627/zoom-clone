@@ -11,7 +11,7 @@ import { useMeeting } from "../../modules/meetings/meeting.hook";
 function Meeting() {
   const { id } = useParams();
   const [showPreview, setShowPreview] = useState(true);
-  const { me, getStream, toggleVideo, toggleVoice } = useMeeting();
+  const { me, getStream, toggleVideo, toggleVoice, join } = useMeeting(id!);
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
 
@@ -29,6 +29,7 @@ function Meeting() {
   };
 
   const joinMeeting = async () => {
+    join();
     setShowPreview(false);
   };
   const leaveMeeting = async () => {
