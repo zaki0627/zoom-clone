@@ -2,9 +2,11 @@ import { Link, useNavigate } from "react-router-dom";
 import { FiVideo, FiUser, FiSettings, FiLogOut } from "react-icons/fi";
 import "./Home.css";
 import { meetingRepository } from "../../modules/meetings/meeting.repository";
+import { useState } from "react";
 
 function Home() {
   const navigate = useNavigate();
+  const [meetingId, setMeetingId] = useState("");
   const startMeeting = async () => {
     try {
       const result = await meetingRepository.createMeeting();
@@ -13,6 +15,10 @@ function Home() {
     } catch (error) {
       console.log(error);
     }
+  };
+
+  const joinMeeting = async () => {
+    navigate(`/meetings/${meetingId}`);
   };
   return (
     <div className="home-container">
@@ -53,8 +59,15 @@ function Home() {
                 type="text"
                 placeholder="会議ID"
                 className="meeting-id-input"
+                value={meetingId}
+                onChange={(e) => setMeetingId(e.target.value)}
               />
-              <button type="submit" className="join-button">
+              <button
+                type="submit"
+                className="join-button"
+                onClick={joinMeeting}
+                disabled={!meetingId}
+              >
                 参加
               </button>
             </form>

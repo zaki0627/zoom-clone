@@ -9,6 +9,7 @@ import { useEffect, useState } from "react";
 import { useCurrentUserStore } from "./modules/auth/current-user.state";
 import { authRepository } from "./modules/auth/auth.repository";
 import AuthGuard from "./components/AuthGuard";
+import { FlashMessage } from "./components/FlashMessage";
 
 function App() {
   const [isLoading, setIsLoading] = useState(true);
@@ -40,6 +41,7 @@ function App() {
           <Route path="/settings" element={<Settings />} />
         </Route>
       </Routes>
+      <FlashMessage />
     </BrowserRouter>
   );
 }

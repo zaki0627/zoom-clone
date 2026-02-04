@@ -7,17 +7,22 @@ import { meetingRepository } from "../../modules/meetings/meeting.repository";
 import { useEffect, useState } from "react";
 import { PreviewMedia } from "./PreviewMedia";
 import { useMeeting } from "../../modules/meetings/meeting.hook";
+import { useFlashMessage } from "../../modules/ui/ui.state";
 
 function Meeting() {
   const { id } = useParams();
   const [showPreview, setShowPreview] = useState(true);
-  const { me, getStream, toggleVideo, toggleVoice, join, participants } =
+  const { me, getStream, toggleVideo, toggleVoice, join, participants, clear } =
     useMeeting(id!);
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
+  const { addMessage } = useFlashMessage();
 
   useEffect(() => {
     initialize();
+    return () => {
+      clear();
+    };
   }, []);
   const initialize = async () => {
     try {
@@ -34,7 +39,20 @@ function Meeting() {
     setShowPreview(false);
   };
   const leaveMeeting = async () => {
+    clear();
     navigate("/");
+  };
+
+  const copyMeetingId = async () => {
+    try {
+      await navigator.clipboard.writeText(id!);
+      addMessage({
+        message: "ミーティングIDをコピーしました",
+        type: "success",
+      });
+    } catch (error) {
+      console.log(error);
+    }
   };
 
   if (showPreview) {
@@ -73,11 +91,11 @@ function Meeting() {
           <FiMessageCircle />
         </button>
 
-        <button className="control-button">
+        <button className="control-button" onClick={copyMeetingId}>
           <FiCopy />
         </button>
 
-        <button className="control-button leave-button">
+        <button className="control-button leave-button" onClick={leaveMeeting}>
           <FiPhone />
         </button>
       </div>

@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { useCurrentUserStore } from "../auth/current-user.state";
 import { io, Socket } from "socket.io-client";
 import Peer from "peerjs";
+import { useNavigate } from "react-router-dom";
+import { useFlashMessage } from "../ui/ui.state";
 export interface Participant {
   id: string;
   name: string;
@@ -26,6 +28,9 @@ export const useMeeting = (meetingId: string) => {
   const [participants, setParticipants] = useState<Map<string, Participant>>(
     new Map(),
   );
+
+  const navigate = useNavigate();
+  const { addMessage } = useFlashMessage();
 
   useEffect(() => {
     setMe((prev) => ({ ...prev, stream: localStreams[0] }));
@@ -94,6 +99,18 @@ export const useMeeting = (meetingId: string) => {
         return newMap;
       });
     });
+    socket.on("participant-left", (data) => {
+      setParticipants((prev) => {
+        const newMap = new Map(prev);
+        newMap.delete(data.leftParticipantId);
+        return newMap;
+      });
+    });
+    socket.on("close", () => {
+      clear();
+      addMessage({ message: "ミーティングが終了しました。", type: "success" });
+      navigate("/");
+    });
   };
 
   const handleSocketConnected = (localStream: MediaStream) => {
@@ -139,5 +156,15 @@ export const useMeeting = (meetingId: string) => {
       }
     });
   };
-  return { me, getStream, toggleVideo, toggleVoice, join, participants };
+
+  const clear = () => {
+    socketRef.current?.emit("leave-meeting", meetingId, me.id);
+    localStreams.forEach((stream) => {
+      stream.getTracks().forEach((track) => track.stop());
+    });
+    setLocalStreams([]);
+    peerRef.current?.destroy();
+    socketRef.current?.disconnect();
+  };
+  return { me, getStream, toggleVideo, toggleVoice, join, participants, clear };
 };
