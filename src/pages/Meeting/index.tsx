@@ -11,7 +11,8 @@ import { useMeeting } from "../../modules/meetings/meeting.hook";
 function Meeting() {
   const { id } = useParams();
   const [showPreview, setShowPreview] = useState(true);
-  const { me, getStream, toggleVideo, toggleVoice, join } = useMeeting(id!);
+  const { me, getStream, toggleVideo, toggleVoice, join, participants } =
+    useMeeting(id!);
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
 
@@ -53,8 +54,10 @@ function Meeting() {
     <div className="meeting-container">
       <div className="video-area">
         <div className="video-grid">
-          <VideoTile participant={me} />
-          <VideoTile participant={me} />
+          <VideoTile participant={{ ...me, name: me.name + "(あなた)" }} />
+          {Array.from(participants.values()).map((participant) => (
+            <VideoTile key={participant.id} participant={participant} />
+          ))}
         </div>
       </div>
 

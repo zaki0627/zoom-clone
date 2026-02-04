@@ -8,6 +8,7 @@ export interface Participant {
   stream: MediaStream | null;
   cameraOn: boolean;
   voiceOn: boolean;
+  isHost?: boolean;
 }
 export const useMeeting = (meetingId: string) => {
   const [localStreams, setLocalStreams] = useState<MediaStream[]>([]);
@@ -22,6 +23,10 @@ export const useMeeting = (meetingId: string) => {
 
   const socketRef = useRef<Socket>(null);
   const peerRef = useRef<Peer>(null);
+  const [participants, setParticipants] = useState<Map<string, Participant>>(
+    new Map(),
+  );
+
   useEffect(() => {
     setMe((prev) => ({ ...prev, stream: localStreams[0] }));
   }, [localStreams]);
@@ -44,6 +49,13 @@ export const useMeeting = (meetingId: string) => {
       cameraOn = videoTracks[0]?.enabled;
     }
     setMe((prev) => ({ ...prev, cameraOn }));
+
+    socketRef.current?.emit("update-participant", meetingId, {
+      id: me.id,
+      name: me.name,
+      voiceOn: me.voiceOn,
+      cameraOn,
+    });
   };
   const toggleVoice = () => {
     let voiceOn = false;
@@ -56,6 +68,12 @@ export const useMeeting = (meetingId: string) => {
       voiceOn = audioTracks[0]?.enabled;
     }
     setMe((prev) => ({ ...prev, voiceOn }));
+    socketRef.current?.emit("update-participant", meetingId, {
+      id: me.id,
+      name: me.name,
+      voiceOn,
+      cameraOn: me.cameraOn,
+    });
   };
 
   const join = async () => {
@@ -65,7 +83,17 @@ export const useMeeting = (meetingId: string) => {
     const socket = socketRef.current;
     socket.on("connect", () => handleSocketConnected(localStream));
 
-    socket.on("participant-joined", (data) => handelejoined(data, localStream));
+    socket.on("participant-joined", (data) => handeleJoined(data, localStream));
+    socket.on("participant-updated", (data) => {
+      setParticipants((prev) => {
+        const newMap = new Map(prev);
+        newMap.set(data.participant.id, {
+          ...data.participant,
+          stream: prev.get(data.participant.id)?.stream,
+        });
+        return newMap;
+      });
+    });
   };
 
   const handleSocketConnected = (localStream: MediaStream) => {
@@ -91,11 +119,25 @@ export const useMeeting = (meetingId: string) => {
       mediaConn.answer(localStream);
     });
   };
-  const handelejoined = (data: any, localStream: MediaStream) => {
+  const handeleJoined = (data: any, localStream: MediaStream) => {
     if (!peerRef) return;
     data.participants.forEach((participant: Participant) => {
-      const call = peerRef.current!.call(participant.id, localStream);
+      if (participant.id !== me.id) {
+        const call = peerRef.current!.call(participant.id, localStream);
+        call.on("stream", (remoteStream) => {
+          setParticipants((prev) => {
+            const newMap = new Map(prev);
+            newMap.set(participant.id, {
+              ...participant,
+              stream: remoteStream,
+            });
+            return newMap;
+          });
+        });
+      } else {
+        setMe((prev) => ({ ...prev, isHost: participant.isHost }));
+      }
     });
   };
-  return { me, getStream, toggleVideo, toggleVoice, join };
+  return { me, getStream, toggleVideo, toggleVoice, join, participants };
 };
