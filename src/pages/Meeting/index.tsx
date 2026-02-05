@@ -8,15 +8,26 @@ import { useEffect, useState } from "react";
 import { PreviewMedia } from "./PreviewMedia";
 import { useMeeting } from "../../modules/meetings/meeting.hook";
 import { useFlashMessage } from "../../modules/ui/ui.state";
+import { Chat } from "./Chat";
 
 function Meeting() {
   const { id } = useParams();
   const [showPreview, setShowPreview] = useState(true);
-  const { me, getStream, toggleVideo, toggleVoice, join, participants, clear } =
-    useMeeting(id!);
+  const {
+    me,
+    getStream,
+    toggleVideo,
+    toggleVoice,
+    join,
+    participants,
+    clear,
+    chats,
+    sendChatMessage,
+  } = useMeeting(id!);
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
   const { addMessage } = useFlashMessage();
+  const [isChatOpen, setisChatOpen] = useState(false);
 
   useEffect(() => {
     initialize();
@@ -70,7 +81,7 @@ function Meeting() {
 
   return (
     <div className="meeting-container">
-      <div className="video-area">
+      <div className={`video-area ${isChatOpen ? "with-chat" : ""}`}>
         <div className="video-grid">
           <VideoTile participant={{ ...me, name: me.name + "(あなた)" }} />
           {Array.from(participants.values()).map((participant) => (
@@ -78,7 +89,13 @@ function Meeting() {
           ))}
         </div>
       </div>
-
+      {isChatOpen && (
+        <Chat
+          onClose={() => setisChatOpen(false)}
+          chatMessages={chats}
+          onSubmit={sendChatMessage}
+        />
+      )}
       <div className="control-bar">
         <MediaControls
           cameraOn={me.cameraOn}
@@ -87,7 +104,10 @@ function Meeting() {
           onToggleVoice={toggleVoice}
         />
 
-        <button className="control-button">
+        <button
+          className="control-button"
+          onClick={() => setisChatOpen(!isChatOpen)}
+        >
           <FiMessageCircle />
         </button>
 
